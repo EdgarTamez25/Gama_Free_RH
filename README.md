@@ -1,2 +1,19 @@
-# Gama_Free_RH
-SISTEMA DE CONTROL ENTRADA Y SALIDA DEL PERSONAL DE GAMA ETIQUETAS
+# gama_free
+
+## Project setup
+```
+npm install
+```
+
+### Compiles and hot-reloads for development
+```
+npm run serve
+```
+
+### Compiles and minifies for production
+```
+npm run build
+```
+
+### Customize configuration
+See [Configuration Reference](https://cli.vuejs.org/config/).
