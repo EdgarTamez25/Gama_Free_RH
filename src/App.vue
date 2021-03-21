@@ -1,8 +1,10 @@
 <template>
   <v-app id="inspire">
-    <v-snackbar v-model="snackbar" :color="color" top multi-line right > <b>{{ text }}</b>
+
+    <v-snackbar v-model="alerta.activo" multi-line :vertical="true" top right :color="alerta.color" > 
+      <strong> {{alerta.texto}} </strong>
       <template v-slot:action="{ attrs }">
-        <v-btn color="white" text v-bind="attrs" @click="snackbar = false"> Cerrar </v-btn>
+        <v-btn color="white" text @click="alerta.activo = false" v-bind="attrs"> Cerrar </v-btn>
       </template>
     </v-snackbar>
 
@@ -60,8 +62,17 @@
       </v-toolbar-items>
     </v-app-bar>
 
+
+    <v-overlay v-if="blocked">
+      <v-progress-circular
+        indeterminate
+        size="64"
+      ></v-progress-circular>
+    </v-overlay>
+
+
     <!-- LOGIN -->
-    <v-dialog v-model="auth" persistent width="400px">
+    <!-- <v-dialog v-model="auth" persistent width="400px">
       <v-card class="pa-1">
        
         <v-card-text class="mt-2 text-center" >
@@ -100,11 +111,7 @@
       </v-card>
        <v-footer color="rosa" dark class="overline" ><v-spacer></v-spacer>  
         <strong>Gama Etiquetas </strong>  — {{ new Date().getFullYear() }} </v-footer>
-<!-- 
-        <v-toolbar color="rosa"  class="mt-2" dark>
-          Ir a calendario
-        </v-toolbar> -->
-    </v-dialog>
+    </v-dialog> -->
 
     <!-- <v-dialog persistent v-model="auth" width="400px">
       <v-card class="pa-1 ">
@@ -147,7 +154,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="celeste" outlined small @click="cerrar_sesion=false" >Cancelar</v-btn>
-          <v-btn color="rosa" dark small @click="salir">Cerrar Sesión</v-btn>
+          <v-btn color="rosa" dark small @click="salir()">Cerrar Sesión</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -166,6 +173,9 @@
 
     },
     data: () => ({
+      syster_number: 3,
+      urlSistemaPrincipal: 'http://producciongama.com:8080/',
+
       iniciar: false,
       cerrar_sesion:false,
       valid:true,
@@ -177,9 +187,10 @@
       show1: false,
       usarioRules: [v => !!v || 'Es requerido'],
       contraRules: [v => !!v || 'Es requerido'],
-      snackbar: false,
-      color:'rosa',
-      text: '',
+      
+      alerta: { activo: false, texto:'', color:'error' },
+      // loading: true,
+      blocked: true,
 
       items: [
           {
@@ -202,54 +213,99 @@
     }),
 
     created(){ 
-      if (typeof(Storage) !== "undefined") {
-        var usuario = '';
-        // VERIFICO SI EXISTE UN USUARIO ACTIVO 
-        if( usuario = JSON.parse(localStorage.getItem("rhKey")) != null){ 
-          usuario = JSON.parse(localStorage.getItem("rhKey")) 
-        }else{ 
-          return 
-        }
+      // if (typeof(Storage) !== "undefined") {
+      //   var usuario = '';
+      //   // VERIFICO SI EXISTE UN USUARIO ACTIVO 
+      //   if( usuario = JSON.parse(localStorage.getItem("rhKey")) != null){ 
+      //     usuario = JSON.parse(localStorage.getItem("rhKey")) 
+      //   }else{ 
+      //     return 
+      //   }
 
-        if(usuario.id ){ 
-          this.Authologin(usuario).then(response =>{
-            this.saludar()
-          }) 
+      //   if(usuario.id ){ 
+      //     this.Authologin(usuario).then(response =>{
+      //       this.saludar()
+      //     }) 
+      //   }
+      // } else {
+      //   this.snackbar= true; this.text ="Este navegador no es compatible con el sistema."
+      // }
+
+      if (typeof(Storage) !== "undefined") {
+        if(localStorage.getItem("KeyLogger") != null){ // VERIFICO SI EXISTE UN USUARIO ACTIVO 
+          this.validaSession().then( response =>{      // VERIFICO SI LA SESSION DEL KEYLOGGER ESTA ACTIVA
+            const payload = new Object();
+                  payload.id       = response.id_usuario
+                  payload.sistema  = this.syster_number
+
+            this.ObtenerDatosUsuario(payload).then(response =>{
+              this.alerta = { activo: true, texto: `HOLA DE NUEVO ${ response.nombre }`, color :'success'  };
+              this.blocked = false;  // DESACTIVO BLOCKEO
+              this.consultarAccesos(this.getdatosUsuario.id_sucursal)
+            }).catch( error=>{       // OBTENGO LA INFORMACION DEL USUARIO
+              this.alerta = { activo: true, texto: error.bodyText, color:'error' }
+              // window.location.href = this.urlSistemaPrincipal;
+            });  
+
+          }).catch( error =>{
+            this.alerta = { activo: true, texto: error.bodyText, color:'error' }
+            console.log('Error validacion', error.bodyText)
+            // window.location.href = this.urlSistemaPrincipal;
+          })
+          if(this.$router.currentRoute.name != 'rh.acceso'){  // COMPARO LA RUTA EN LA QUE ME ENCUENTRO 
+            this.$router.push({ name: 'rh.acceso' });         // SI ES DIFERENTE ENRUTO A PAGINA ARRANQUE
+          }
+        }else{ 
+            console.log('NO HAY KEYLOG')
+            // window.location.href = this.urlSistemaPrincipal;
         }
-      } else {
-        this.snackbar= true; this.text ="Este navegador no es compatible con el sistema."
-      }
+    } else {
+      console.log('NO ES COMPATIBLE LOCAL')
+      window.location.href = this.urlSistemaPrincipal;
+
+    }
+
+
+
+
     },
     computed:{ ...mapGetters('Login',['getdatosUsuario','getLogeado','auth']) },
     methods:{
-      ...mapActions('Login',['Login','salirLogin','authenticar','sucusales','Authologin']),
+      ...mapActions('Login',['Login','salirLogin','authenticar','sucusales','Authologin','validaSession','ObtenerDatosUsuario']),
+      ...mapActions('Accesos',['consultarAccesos']),
 
-      IniciarSesion (){
-        this.iniciar = true; var md5 = require('md5')
-        var usuario = { correo: this.correo,usuario : this.correo.toUpperCase(), contrasenia: md5(this.contrasenia)};
-        this.Login(usuario).then(response => {
-          if(response){
-            this.$router.push({name:'rh.acceso'})
-            this.saludar()
-            localStorage.setItem("rhKey", JSON.stringify(this.getdatosUsuario))
-|            this.limpiarCampos()
-          }else{
-            this.text  = "Lo siento amiguit@ algo salio mal. Verifica tus datos";this.snackbar = true;this.color="error"
-            return
-          }
-        }).catch(error =>{
-          console.log(error)
-        }).finally(() => this.iniciar = false, this.sesion = false) 
-      },
-      saludar(){
-        this.snackbar = true; this.text = 'HOLA DE NUEVO'+ ' '+this.getdatosUsuario.nombre; this.color="rosa"
-      },
+
+//       IniciarSesion (){
+//         this.iniciar = true; var md5 = require('md5')
+//         var usuario = { correo: this.correo,usuario : this.correo.toUpperCase(), contrasenia: md5(this.contrasenia)};
+//         this.Login(usuario).then(response => {
+//           if(response){
+//             this.$router.push({name:'rh.acceso'})
+//             this.saludar()
+//             localStorage.setItem("rhKey", JSON.stringify(this.getdatosUsuario))
+// |            this.limpiarCampos()
+//           }else{
+//             this.text  = "Lo siento amiguit@ algo salio mal. Verifica tus datos";this.snackbar = true;this.color="error"
+//             return
+//           }
+//         }).catch(error =>{
+//           console.log(error)
+//         }).finally(() => this.iniciar = false, this.sesion = false) 
+//       },
+
+      
+      // saludar(){
+      //   this.snackbar = true; this.text = 'HOLA DE NUEVO'+ ' '+this.getdatosUsuario.nombre; this.color="rosa"
+      // },
+
 
       salir(){
-        localStorage.removeItem("rhKey");
+        
+        this.alerta = { activo: true, texto: `HASTA PRONTO ${ this.getdatosUsuario.nombre }`, color :'success'  };
         this.cerrar_sesion= false;
         this.salirLogin()
         this.$store.dispatch("salir")
+
 
       },
 

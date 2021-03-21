@@ -18,7 +18,9 @@ export default new Vuex.Store({
   },
   actions: {
     salir(){
-      router.push({name: 'rh.acceso'})
+      // router.push({name: 'rh.acceso'})
+    setTimeout(()=>{ window.location.href = "http://producciongama.com:8080/"; }, 2000)
+
     }
   },
   modules: {

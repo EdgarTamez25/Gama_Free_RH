@@ -1,6 +1,6 @@
 <template >
   <v-main class="pa-0 ma-3">
-  	<v-row  class="justify-center">
+  	<v-row justify="center">
 
       <v-snackbar top v-model="snackbar" :timeout="2000"  color="error"> {{ text }} 
         <v-btn  dark icon class="mx-5" @click="snackbar = false" > <v-icon>clear</v-icon> </v-btn>
@@ -40,11 +40,11 @@
 
         <!-- ARRAY DE PERSONAL FUERA DE LA EMPRESA -->
         <v-tab-item justify="center">
-          <v-row>
-            <v-col  v-for="(item, i) in getAccesos" :key="i" cols="12" sm="6"  lg="4" xl="3" class="my-3">
-              <v-card height="100%" class="tarjeta" dark >
+          <v-row justify="left">
+            <v-col  v-for="(item, i) in getAccesos" :key="i" cols="12" sm="6"  lg="4" xl="3" class="ma-3">
+              <v-card height="90%" dark >
                 <div class="d-flex flex-no-wrap justify-space-between">
-                  <v-avatar class="ma-3" size="80" tile>
+                  <v-avatar class="ma-3" size="60" tile>
                     <v-img src="http://producciongama.com:8080/IMAGENES/usuario.png" loading="lazy"></v-img>
                   </v-avatar>
                   <div>
@@ -225,8 +225,8 @@
     created(){
       if(!this.getLogeado){ this.authenticar(true)  }
       // this.authenticar(true);
-      this.consultarAccesos(this.getdatosUsuario.id_sucursal)
       this.consultar_Clientes()
+      // this.consultarAccesos(this.getdatosUsuario.id_sucursal)
     },
 
     computed:{

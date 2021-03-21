@@ -6,11 +6,12 @@ export default{
 		login:false,
 		datosUsuario:[],
 		auth: true,
+		sistemas:[],
+
 	},
 
 	mutations:{
 		LOGEADO(state, value){
-			// console.log('logeado', value)
 			state.login = value
 		},
 		AUTHENTICAR(state, value){
@@ -20,6 +21,10 @@ export default{
 		DATOS_USUARIO(state, datosUsuario){
 			state.datosUsuario = datosUsuario
 		},
+		SISTEMAS(state, data){
+			state.sistemas = data
+		},
+
 		SALIR(state){
 			state.login = false;
 			state.datosUsuario = [];
@@ -55,7 +60,7 @@ export default{
 						commit('AUTHENTICAR', false)
 						commit('LOGEADO', true);
 						commit('DATOS_USUARIO', response.body[0]);
-						console.log('response', response.body[0]);
+						// console.log('response', response.body[0]);
 					}else{
 						resolve(false)
 						commit('AUTHENTICAR', true)
@@ -66,13 +71,49 @@ export default{
 			})
 		},
 
+		validaSession(){
+			return new Promise((resolve, reject) => {
+				const payload = new Object();
+              payload.id = localStorage.getItem("KeyLogger")
+				Vue.http.post('valida.sesion.activa', payload).then(response =>{
+					// console.log('VALIDACION', response.body)
+					resolve(response.body[0])
+				}).catch( error =>{
+					console.log('valida error', error)
+					reject(error)
+				})
+			});
+		},
+
+		ObtenerDatosUsuario({commit},payload){
+			return new Promise((resolve, reject) => {
+				Vue.http.post('obtener.datos.usuario',payload ).then(response =>{
+					resolve(response.body.datosUsuario)
+					commit('DATOS_USUARIO', response.body.datosUsuario );
+					commit('SISTEMAS'     , response.body.sistemas);
+					commit('LOGEADO', true);
+				}).catch( error =>{
+					console.log('valida error', error.body)
+					reject(error)
+				})	
+			});
+			
+		},
+
 		authenticar({commit}, estatus){
 			commit('AUTHENTICAR', estatus)
 		},
+		
 		salirLogin({commit}){
-			// this.$store.dispatch("salir")
-			commit('AUTHENTICAR', true)
-			commit('SALIR')
+			commit('AUTHENTICAR', true);
+			commit('LOGEADO', false);
+			commit('SALIR');
+
+			const payload = new Object();
+						payload.id = localStorage.getItem("KeyLogger");
+			Vue.http.post('cerrar.sesion', payload ).then( res =>{
+				console.log('SE CERRO CON EXITO');
+			})
 		},
 	
 	},
@@ -87,6 +128,10 @@ export default{
 		auth(state){
 			return state.auth;
 		},
+
+		getSistemas(state){
+			return state.sistemas;
+		}
 	
 	}
 }
